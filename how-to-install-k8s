@@ -1,0 +1,20 @@
+1. Installing containerd
+apt-get update
+apt-get install -y containerd
+systemctl enable containerd
+- check socket:
+ls -l /var/run/containerd/containerd.sock
+
+2. Installing kubeadm
+apt-get install -y apt-transport-https ca-certificates curl gpg
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+apt-get update
+apt-get install -y kubelet kubeadm kubectl
+
+3. Configuring a cgroup driver
+nano /etc/default/kubelet
+KUBELET_EXTRA_ARGS="--cgroup-driver=cgroupfs"
+
+4. Init cluster 
+sudo kubeadm init --control-plane-endpoint=master-node --upload-certs 
