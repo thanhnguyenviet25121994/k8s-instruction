@@ -1,30 +1,50 @@
-1. Pre-setup:
-- swap off: swapoff -a
-- sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
-- sudo nano /etc/sysctl.d/kubernetes.conf: 
+1/ setup docker container runtime:
+- apt update
+- apt install docker.io -y
+- systemctl enable docker
+- systemctl status docker (docker should be running)
+2/ download kubenet tool (kubeadm, kubelet):
+- echo 'deb [trusted=true] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+- apt update
+- apt install kubeadm -y 
+- apt install kubelet -y
+3/ configure docker, kubelet and others:
+- swapoff -a
+- sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+- nano /etc/modules-load.d/containerd.conf
+overlay
+br_netfilter
+- modprobe overlay
+- modprobe br_netfilter
+- nano /etc/sysctl.d/kubernetes.conf
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
 net.ipv4.ip_forward = 1
 - sysctl --system
-- nano /etc/hosts:
-master-node <node-ip>
-2. Installing containerd
-apt-get update
-apt-get install -y containerd
-systemctl enable containerd
-- check socket:
-ls -l /var/run/containerd/containerd.sock
-
-3. Installing kubeadm
-apt-get install -y apt-transport-https ca-certificates curl gpg
-curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
-apt-get update
-apt-get install -y kubelet kubeadm kubectl
-
-4. Configuring a cgroup driver
-nano /etc/default/kubelet
+- nano /etc/default/kubelet
 KUBELET_EXTRA_ARGS="--cgroup-driver=cgroupfs"
+- systemctl daemon-reload && sudo systemctl restart kubelet
+- nano /etc/docker/daemon.json
+{
+      "exec-opts": ["native.cgroupdriver=systemd"],
+      "log-driver": "json-file",
+      "log-opts": {
+         "max-size": "100m"
+      },
+       "storage-driver": "overlay2"
+}
 
-5. Init cluster 
-sudo kubeadm init --control-plane-endpoint=master-node --upload-certs 
+- systemctl daemon-reload && sudo systemctl restart docker
+- nano /lib/systemd/system/kubelet.service.d/10-kubeadm.conf
+Environment="KUBELET_EXTRA_ARGS=--fail-swap-on=false"
+- systemctl daemon-reload && sudo systemctl restart kubelet
+4/ install kube cluster and cni network (calcio):
+- kubeadm init --pod-network-cidr=192.168.0.0/16
+- mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+- install calcio: kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/tigera-operator.yaml
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/custom-resources.yaml
+- check status of calcio: watch kubectl get pods -n calico-system => wait until all pods are running
+5/ Verify kube cluster deployment:
+- kubectl run --rm utils -it --image arunvelsriram/utils bash
