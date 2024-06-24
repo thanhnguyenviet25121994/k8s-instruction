@@ -1,0 +1,31 @@
+- openssl genrsa -out thanh.key 2048
+- openssl req -new -key thanh.key -out thanh.csr -subj "/CN=thanh"
+
+- cat thanh.csr | base64 | tr -d "\n" : change the request value in the next command with the output of this one
+
+cat <<EOF | kubectl apply -f -
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: thanh
+spec:
+  request: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURSBSRVFVRVNULS0tLS0KTUlJQ1ZUQ0NBVDBDQVFBd0VERU9NQXdHQTFVRUF3d0ZkR2hoYm1nd2dnRWlNQTBHQ1NxR1NJYjNEUUVCQVFVQQpBNElCRHdBd2dnRUtBb0lCQVFEZWdoRUEwL2kwaDA4WGRlejR2clRhY0xoaTNCNWFuanNwcktrbVdkbytaWUZZCk14MDhPVU9SK21lVjB2Q095Rks0ZEN6Y3puL2RBeVZsSUFMc3Bna1RhR2RXNXZCZ3hKWVJqTDhlWHMyVUVteG8KSWNxeVFzaXhmdnVqQTRQSGhzUWtGREJPTjZWay9SZjJXaEZhNXp6cCtEd2dsRFAwcVNaYUpFSHh2aGc2YlJNQwp0SitDYnRIZkxzTXlpbWhYamZjeEUyWC9RbVFhSlZNdnpucGhJMGN5T2llTWZGRGNkS1Z0NUc1ZENoRmszd1NDCnJwT0htL0NKTjl5Qlc3MFZ2WVVqaVdVbEw2QWZ5U1V4TFp6ZTV4MThzQWFRemd0UDFUeU5CN0pEWDNJYmpJZG8KNERIeDZ4cWY2UzJKNTcxRis5WWQ2S2pDaXFIM2paRDFCei9EeWcvQkFnTUJBQUdnQURBTkJna3Foa2lHOXcwQgpBUXNGQUFPQ0FRRUFFVmVHb2ZRS2FFTS9UTDhDYTFTVU5uVlhlR0hXL04wMS9QbDV6SWg0VGNySmtvTlMzZTlTCnR5V2I4VytNcHFnOXJwc3RtZHlLZjZMMTNVakI3dWFkZllDVUdyRmVwQ3BON0dlazhZYVozVGlmK2NPY1IxbHgKZjlMOWljNWw2ZU9LQW9TU3R1VXdISmNkcnVjVEFUd1gzdmxxNi9Way9CTnN3UkcwTHhZQzYxS3M4VmZYVmN4cApMM0x6RXpNTmIxQVQ4cEVzUS9JOWZHTzBBbWZhdUt0Mmx1a29mZHpBUVVkZXMwWEVrTG8rR0IxajR1NzV2L2ZaCnNyZUwzTENvWEluZzJPVHhpMmozNFhwdFNOZmNuWCtwMTRWUTIzKytHS0JDYWFvdlBqVWh5U2Z4MEZuL1pObU0KQlplcENSKzVLdWF6TXViQ0h3MXFpUEhra3lMWWpRc1JGdz09Ci0tLS0tRU5EIENFUlRJRklDQVRFIFJFUVVFU1QtLS0tLQo=
+  signerName: kubernetes.io/kube-apiserver-client
+  expirationSeconds: 86400  # one day
+  usages:
+  - client auth
+EOF
+
+
+- check all current csr: kubectl get csr
+- Approve thanh's csr: kubectl certificate approve thanh
+- get the csr: kubectl get csr thanh -o jsonpath='{.status.certificate}'| base64 -d > thanh.crt
+
+
+- Create role and role binding:
+kubectl create role developer --verb=create --verb=get --verb=list --verb=update --verb=delete --resource=pods
+kubectl create rolebinding developer-binding-thanh --role=developer --user=thanh
+
+- Create kubeconfig:
+kubectl config set-credentials thanh --client-key=thanh.key --client-certificate=thanh.crt --embed-certs=true
+kubectl config set-context thanh --cluster=kubernetes --user=thanh
