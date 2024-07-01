@@ -49,3 +49,12 @@ kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0
 - untain node: kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 5/ Verify kube cluster deployment:
 - kubectl run --rm utils -it --image arunvelsriram/utils bash
+
+
+*** Bonus:
+1/ joining worker node:
+kubeadm token create --print-join-command
+2/ joining master node:
+- kubeadm init phase upload-certs --upload-certs => get this cert
+- kubeadm token create --print-join-command
+- $JOIN_COMMAND_FROM_STEP2 --control-plane --certificate-key $KEY_FROM_STEP1
