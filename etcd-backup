@@ -1,0 +1,21 @@
+- install etcdctl: apt install etcd-client
+- get name of api pod: k get po -n kube-system
+- check certs and keys location: kubectl -n kube-system get pod kube-apiserver-testk8smasternode -o=jsonpath='{.spec.containers[0].command}' |jq |grep etcd
+- create a snapshot: 
+ETCDCTL_API=3 etcdctl snapshot save /home/k8s/kubernetes_installation/etcd_backup/etcd_snapshot \
+--endpoints=https://127.0.0.1:2379 \
+--cacert=/etc/kubernetes/pki/etcd/ca.crt \
+--cert=/etc/kubernetes/pki/apiserver-etcd-client.crt \
+--key=/etc/kubernetes/pki/apiserver-etcd-client.key
+
+- Check status of this snapshot: ETCDCTL_API=3 etcdctl snapshot status etcd_snapshot -w table
+- Restore from a snapshot should output a data dir:ETCDCTL_API=3 etcdctl snapshot restore etcd_snapshot --bump-revision 1000000000 --mark-compacted --data-dir /home/k8s/kubernetes_installation/etcd_backup/etcd_snapshot_dir
+
+Option1: for test/staging
+- Go to file: nano /etc/kubernetes/manifests/etcd.yaml. This file is static pod of etcd. This pod cannot be control by kubectl. Kubelet scan the folder /etc/kubernetes/manifests/ to check changes to static pods. 
+- search: name: etcd-data and make change to: path: /var/lib/etcd -> /home/k8s/kubernetes_installation/etcd_backup/etcd_snapshot_dir and save. Then changes are applied automatically because kubelet scan this file. 
+- Or else: 
+
+Option2: for production
+-  replace /var/lib/etcd with mv /home/k8s/kubernetes_installation/etcd_backup/etcd_snapshot_dir. change name etcd_snapshot_dir to etcd 
+- move /etc/kubernetes/manifests/etcd.yaml from /etc/kubernetes/manifests/ and return it back. That gonna make kubelet scan for new changes and recreate the etcd-pod.
