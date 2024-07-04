@@ -1,0 +1,24 @@
+1/ Configure nfs server:
+<Install dependencies>:
+- apt-get update
+- apt install nfs-kernel-server
+<Create root nfs dir>:
+- mkdir /mnt/myshareddir
+- chown nobody:nogroup /mnt/myshareddir #no-one is owner
+- chmod 777 /mnt/myshareddir #everyone can modify files
+<Define access for nfs client>:
+- nano /etc/exports: add the following line to allow all IPs in 192.168.1.0/24 to access 
+/mnt/myshareddir 192.168.1.0/24(rw,sync,no_subtree_check)
+<Making the nfs share available to clients>:
+- exportfs -a #making the file share available
+- systemctl restart nfs-kernel-server #restarting the NFS kernel
+
+2/ Setting up nfs on client:
+<Installing nfs packs>:
+- apt update
+- apt install nfs-common
+<mount the nfs to a mount point>:
+- mkdir /var/locally-mounted
+- nano /etc/fstab: 
+192.168.1.170:/mnt/myshareddir /home/k8s/remote-mount nfs defaults 0 0
+- mount -a (there might be error message, no problem)
