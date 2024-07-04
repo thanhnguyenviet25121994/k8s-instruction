@@ -22,3 +22,38 @@
 - nano /etc/fstab: 
 192.168.1.170:/mnt/myshareddir /home/k8s/remote-mount nfs defaults 0 0
 - mount -a (there might be error message, no problem)
+
+3/ Setting up storageclass:
+<setup configurations>:
+- git clone https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner.git kubernetes-incubator
+- kubectl create namespace k8s-nfs-storage
+- cd kubernetes-incubator/deploy
+- sed -i'' "s/namespace:.*/namespace: k8s-nfs-storage/g" rbac.yaml
+- sed -i'' "s/namespace:.*/namespace: k8s-nfs-storage/g" deployment.yaml
+- kubectl create -f rbac.yaml
+- nano deployment.yaml: note that the NFS shared folder should be the folder name on the NFS server, not the NFS client mountpoint
+containers:
+        - name: nfs-client-provisioner
+          image: groundhog2k/nfs-subdir-external-provisioner:v3.2.0
+          volumeMounts:
+            - name: nfs-client-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: storage.io/nfs
+            - name: NFS_SERVER
+              value: 192.168.1.10  << change to ip NFS server
+            - name: NFS_PATH
+              value: /var/nfsshare  << change to NFS shared folder
+      volumes:
+        - name: nfs-client-root
+          nfs:
+            server: 192.168.1.10 << change to ip NFS server
+            path: /var/nfsshare  << change to NFS shared folder
+- kubectl create -f class.yaml
+- kubectl create -f deployment.yaml
+- kubectl get all -n k8s-nfs-storage
+
+<Test deployments>:
+- k apply -f test-claim.yaml
+- k get pv
