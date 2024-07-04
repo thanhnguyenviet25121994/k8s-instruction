@@ -8,7 +8,7 @@
 - chmod 777 /mnt/myshareddir #everyone can modify files
 <Define access for nfs client>:
 - nano /etc/exports: add the following line to allow all IPs in 192.168.1.0/24 to access 
-/mnt/myshareddir 192.168.1.0/24(rw,sync,no_subtree_check)
+/mnt/myshareddir 192.168.1.0/24(rw,insecure,sync,no_subtree_check,no_root_squash)
 <Making the nfs share available to clients>:
 - exportfs -a #making the file share available
 - systemctl restart nfs-kernel-server #restarting the NFS kernel
@@ -53,7 +53,14 @@ containers:
 - kubectl create -f class.yaml
 - kubectl create -f deployment.yaml
 - kubectl get all -n k8s-nfs-storage
-
+- mark the storage as default: (if storage named nfs-client) 
+kubectl patch storageclass nfs-client -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+- check status: k get sc (the storage should be marked as default)
 <Test deployments>:
 - k apply -f test-claim.yaml
 - k get pv
+
+***note:
+1/ common bugs to statefulsets: 
+- mysql: 2024-07-04T10:50:59.202445Z 1 [ERROR] [MY-012574] [InnoDB] Unable to lock ./ibdata1 error: 11
+This cause by a zombie pod running. Cannot see this pod with k get po. To fix, just restart kubelet
