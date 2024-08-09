@@ -1,0 +1,22 @@
+1/ Tạo service account: kubectl create serviceaccount admin-cluster --namespace default
+2/ Clusterrolebinding: 
+kubectl create clusterrolebinding admin-cluster-binding \
+  --clusterrole=cluster-admin \
+  --serviceaccount=default:admin-cluster
+3/ Tạo token: 
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: admin-cluster-token
+  namespace: default
+  annotations:
+    kubernetes.io/service-account.name: admin-cluster
+type: kubernetes.io/service-account-token
+
+```
+kubectl apply -f admin-cluster-token.yaml
+kubectl get secret admin-cluster-token -o=jsonpath='{.data.token}' --namespace default | base64 --decode
+
+ 
+
