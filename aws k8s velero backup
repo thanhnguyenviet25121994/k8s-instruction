@@ -1,0 +1,87 @@
+***Prerequisite: Must have a k8s cluter and kubectl installed
+download velero -> move to /usr/local/bin
+Create IAM user on UI -> add user to group admin with these policy: AmazonS3FullAccess and IAMFullAccess(should search) -> create Access key -> aws configure
+aws s3api create-bucket \
+    --bucket test-velero-121351213 \
+    --region us-east-1 \
+
+***Note: S3 bucket name should be globally unique. So if the above command return an error, try with different name in --bucket flag
+
+- Create velero IAM user:
+
+aws iam create-user --user-name velero
+
+- Create permission policy for this user
+cat > velero-policy.json <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:DescribeVolumes",
+                "ec2:DescribeSnapshots",
+                "ec2:CreateTags",
+                "ec2:CreateVolume",
+                "ec2:CreateSnapshot",
+                "ec2:DeleteSnapshot"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:DeleteObject",
+                "s3:PutObject",
+                "s3:AbortMultipartUpload",
+                "s3:ListMultipartUploadParts"
+            ],
+            "Resource": [
+                "arn:aws:s3:::*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::*"
+            ]
+        }
+    ]
+}
+EOF
+
+- Attach permission policy to the user
+aws iam put-user-policy \
+  --user-name velero \
+  --policy-name velero \
+  --policy-document file://velero-policy.json
+
+- Create access key for this user:
+aws iam create-access-key --user-name velero
+
+- Get the accesskeyID and accesskeySecret from the above step, put into a file named credentials-velero
+cat<<EOF>credentials-velero
+[default]
+aws_access_key_id=<AWS_ACCESS_KEY_ID>
+aws_secret_access_key=<AWS_SECRET_ACCESS_KEY>
+EOF
+
+- Install and start velero
+
+*** add volume bacckup location
+velero install \
+    --provider aws \
+    --bucket test-velero-121351213 \
+    --secret-file ./credentials-velero \
+    --plugins velero/velero-plugin-for-aws:v1.0.0 \
+    
+
+- Backup a namespace:
+velero backup create hexabase-core-t --volume-snapshot-locations --include-namespaces hexabase-core
+
+- Check status: 
+velero backup describe hexabase-core-t
