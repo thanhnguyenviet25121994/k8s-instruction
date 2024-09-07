@@ -77,7 +77,10 @@ velero install     --backup-location-config region=us-east-1     --snapshot-loca
     
 
 - Backup a namespace:
-velero backup create hexabase-core-t --volume-snapshot-locations --include-namespaces hexabase-core
+velero backup create hexabase-core-t --include-namespaces hexabase-core
 
 - Check status: 
 velero backup describe hexabase-core-t
+
+- restore:
+velero restore create --from-backup hexabase-core-t
