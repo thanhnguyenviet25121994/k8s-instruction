@@ -50,6 +50,10 @@ kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0
 5/ Verify kube cluster deployment:
 - kubectl run --rm utils -it --image arunvelsriram/utils bash
 
+6/ setup apparmor for runc (to delete unused pod):
+- sudo ln -s /etc/apparmor.d/runc /etc/apparmor.d/disable/
+- sudo apparmor_parser -R /etc/apparmor.d/runc
+
 
 *** Bonus:
 1/ joining worker node:
