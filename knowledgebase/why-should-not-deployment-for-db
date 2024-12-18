@@ -1,0 +1,8 @@
+Deployment shouldnot use for db because: 
+- Cannot assign more than 1 pv to deployment: 
++ Deployment support only one pv. So all pods are mounted to the same pv. They overwrite data of eachother because they use the same path in the mounted pv.
++ For statefulset, it supports VolumeclaimTemplate, so 1 statefulset can have different PVs for different Pod
++ A a result, deployment can be used for db with 1 node only. But it is not recommended because of the following:
+- Deployment might create new pod even if the old one is still running: 
++ If there is one pod on a node, but the node loses connection to controlplane, deployment creates new pod on another node. It does not care if the old one is actually down or not. This might create a conflict
++ Meanwhile, statefulset make sure the old one is deleted before creating a new one. It waits for confirmation before creating new one.
