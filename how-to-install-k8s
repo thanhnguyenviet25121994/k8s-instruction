@@ -45,7 +45,7 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 - install calcio: kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/tigera-operator.yaml
 kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.28.0/manifests/custom-resources.yaml
-- check status of calcio: watch kubectl get pods -n calico-system => wait until all pods are running
+- check status of calcio: watch kubectl get pods -n tigera-operator => wait until all pods are running
 - untain node: kubectl taint nodes --all node-role.kubernetes.io/control-plane-
 5/ Verify kube cluster deployment:
 - kubectl run --rm utils -it --image arunvelsriram/utils bash
