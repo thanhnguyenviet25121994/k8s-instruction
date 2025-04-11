@@ -1,0 +1,1 @@
+Find the pod backend of that service, scale down to 0 and back to desired number - this was solved by Ashish in PANAsonic
